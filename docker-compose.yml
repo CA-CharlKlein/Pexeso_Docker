@@ -1,0 +1,61 @@
+version: "3"
+services:
+  web:
+    image: capexeso/pexeso:latest
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://database:27017/pexeso
+      - REDIS_URL=redis://statestore:6379
+      - PORT=8000
+    deploy:
+      replicas: 5
+      resources:
+        limits:
+          cpus: "1"
+          memory: 500M
+      restart_policy:
+        condition: on-failure
+    ports:
+      - "8000:8000"
+    networks:
+      - webnet
+    volumes:
+      - "/Users/charlklein/Docker/data:/data"  
+      - "/Users/charlklein/Docker/data/root:/root"  
+    depends_on:
+      - statestore
+      - database        
+  visualizer:
+    image: dockersamples/visualizer:stable
+    ports:
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - webnet
+  statestore:
+    image: redis:latest
+    deploy:
+      replicas: 1    
+    ports:
+      - "6379:6379"
+    volumes:
+      - "/Users/charlklein/Docker/data:/data"
+    command: redis-server --appendonly yes
+    networks:
+      - webnet
+  database:
+    image: mongo:latest
+    deploy:
+      replicas: 1
+    environment:
+      - MONGO_DATA_DIR=/data/db
+      - MONGO_LOG_DIR=/dev/null
+    volumes:
+      - /Users/charlklein/Docker/data:/data/db
+    ports:
+        - "27017:27017"
+    networks:
+      - webnet
+networks:
+  webnet:
